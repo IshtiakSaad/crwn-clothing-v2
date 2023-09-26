@@ -4,9 +4,10 @@ import Button from "../button/button.component";
 
 import { 
     signInWithGooglePopup, 
-    createAuthUserWithEmailAndPassword, 
-    createUserDocumentFromAuth 
+    createUserDocumentFromAuth,
+    SignInAuthUserWithEmailAndPassword,
 } from "../../utils/firebase/firebase.utils";
+
 import './sign-in-form.style.scss';
 
 const defaultFormField = {
@@ -19,14 +20,22 @@ const SignInForm = () => {
     const [formFields, setFormFields] = useState(defaultFormField);
     const {email, password} = formFields;
 
-    console.log(formFields);
     const resetFormFields = () => {
         setFormFields(defaultFormField);
     }
  
     const SignInWithGoogle = async () => {
         const {user} = await signInWithGooglePopup();
-        const userDocRef = await createUserDocumentFromAuth(user); 
+        try {
+            await createUserDocumentFromAuth(user); 
+        }catch(error){
+            if(error.code === 'auth/popup-closed-by-user'){
+                console.log("Pop-up closed by user.");
+            }
+            else{
+                console.log("Error.");
+            }
+        }
     } 
 
 
@@ -34,10 +43,20 @@ const SignInForm = () => {
         event.preventDefault();
 
         try{
-
-
+            const response = await SignInAuthUserWithEmailAndPassword(email, password);
+            console.log(response);
+            resetFormFields();
         }catch(error){
-            
+            switch(error.code){
+                case 'auth/wrong-password':
+                    alert("Incorrect Password.");
+                    break;
+                case 'auth/user-not-found':
+                    alert("Invalid email address");
+                    break;
+                default:
+                    console.log(error);
+            }
         }
     }
 
@@ -48,7 +67,7 @@ const SignInForm = () => {
     }
 
     return (
-        <div className="sign-up-container">
+        <div className="sign-in-container">
         <h2>Already have an account?</h2>
         <span>Sign in with email and password.</span>
         <form onSubmit={handleSubmit}>
@@ -71,8 +90,10 @@ const SignInForm = () => {
                 value={password}
             />
 
-            <Button type="submit">Sign In</Button>
-            <Button onClick={SignInWithGoogle}>Sign In With Google</Button>
+            <div className="buttons-container">
+                <Button type="submit">Sign In</Button>
+                <Button type="button" buttonType={"google"} onClick={SignInWithGoogle}>Google Sign In</Button>
+            </div>
         </form>
         </div>
     )
